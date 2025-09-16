@@ -10,7 +10,6 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 const swingEvents = [
   { key: 'setup', label: 'Setup' },
   { key: 'top_backswing', label: 'Top of Backswing' },
-  { key: 'impact', label: 'Impact' },
   { key: 'follow_through', label: 'Follow Through' },
 ] as const;
 
@@ -20,7 +19,7 @@ export default function PoseComparison({
   alignmentType = 'setup',
 }: PoseComparisonProps) {
   const [currentEvent, setCurrentEvent] = useState<
-    'setup' | 'top_backswing' | 'impact' | 'follow_through'
+    'setup' | 'top_backswing' | 'follow_through'
   >(alignmentType);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
@@ -29,9 +28,7 @@ export default function PoseComparison({
   };
 
   const handleEventChange = (eventKey: string) => {
-    setCurrentEvent(
-      eventKey as 'setup' | 'top_backswing' | 'impact' | 'follow_through'
-    );
+    setCurrentEvent(eventKey as 'setup' | 'top_backswing' | 'follow_through');
   };
 
   const getSnapshotUrl = (swing: typeof swing1, eventKey: string) => {

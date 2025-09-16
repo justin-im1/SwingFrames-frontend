@@ -217,7 +217,7 @@ export interface SnapshotGridProps {
 export interface PoseComparisonProps {
   swing1: PoseAnalysis;
   swing2: PoseAnalysis;
-  alignmentType?: 'setup' | 'top_backswing' | 'impact' | 'follow_through';
+  alignmentType?: 'setup' | 'top_backswing' | 'follow_through';
 }
 
 export interface PoseVisualizationProps {

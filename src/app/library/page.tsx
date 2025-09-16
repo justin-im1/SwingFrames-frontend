@@ -34,6 +34,12 @@ export default function LibraryPage() {
   const { library, selectedSwings, loading } = swingsState;
   const api = useAuthenticatedApi();
 
+  // State for search and filtering
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [filterType, setFilterType] = useState<FilterType>('all');
+  const [filterValue, setFilterValue] = useState('');
+
   useEffect(() => {
     const loadLibrary = async () => {
       // Only load if authentication is ready and user is signed in
@@ -120,6 +126,42 @@ export default function LibraryPage() {
                 <Plus className="h-4 w-4 mr-2" />
                 Upload Swing
               </Button>
+            </div>
+          </div>
+
+          {/* Search and Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search swings..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <select
+                value={filterType}
+                onChange={e => setFilterType(e.target.value as FilterType)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              >
+                <option value="all">All Swings</option>
+                <option value="outcome">Outcome</option>
+                <option value="club">Club</option>
+              </select>
+              {filterType !== 'all' && (
+                <input
+                  type="text"
+                  placeholder={`Filter by ${filterType}...`}
+                  value={filterValue}
+                  onChange={e => setFilterValue(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              )}
             </div>
           </div>
 

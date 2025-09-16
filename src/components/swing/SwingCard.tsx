@@ -28,6 +28,7 @@ export default function SwingCard({
   showActions = true,
 }: SwingCardProps) {
   const [videoError, setVideoError] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const deleteSwingMutation = useDeleteSwing();
   const dispatch = useAppDispatch();
