@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Inter } from 'next/font/google';
 import './globals.css';
 import { ClerkProvider } from '@clerk/nextjs';
 import Providers from '../components/providers/Providers';
@@ -13,6 +13,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap', // Better performance
 });
 
 export const metadata: Metadata = {
@@ -29,7 +35,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className="h-full w-full">
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased m-0 p-0 h-screen w-screen overflow-hidden`}
+          className={`${inter.variable} antialiased m-0 p-0 h-screen w-screen overflow-hidden`}
         >
           <ErrorBoundary>
             <Providers>{children}</Providers>
