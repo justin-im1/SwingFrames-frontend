@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Search, Plus, BarChart3 } from 'lucide-react';
+import { Plus, BarChart3 } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
 import SwingCard from '../../components/swing/SwingCard';
 import Button from '../../components/ui/Button';
@@ -17,12 +17,11 @@ import {
   setLoading,
   setError,
 } from '../../features/swings/swingsSlice';
-import { Swing, SwingTag, SwingsState } from '../../types';
+import { Swing, SwingsState } from '../../types';
 import { useAuthenticatedApi } from '../../hooks/useAuthenticatedApi';
 import { useAuth } from '@clerk/nextjs';
 
 type ViewMode = 'grid' | 'list';
-type FilterType = 'all' | 'outcome' | 'club';
 
 export default function LibraryPage() {
   const router = useRouter();
@@ -34,11 +33,8 @@ export default function LibraryPage() {
   const { library, selectedSwings, loading } = swingsState;
   const api = useAuthenticatedApi();
 
-  // State for search and filtering
-  const [searchQuery, setSearchQuery] = useState('');
+  // State for view mode
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [filterType, setFilterType] = useState<FilterType>('all');
-  const [filterValue, setFilterValue] = useState('');
 
   useEffect(() => {
     const loadLibrary = async () => {
@@ -64,24 +60,7 @@ export default function LibraryPage() {
   const filteredSwings = library.filter((swing: Swing) => {
     // Add null checks to prevent errors
     if (!swing) return false;
-
-    // Handle missing title - use a default or skip
-    const title = swing.title || 'Untitled Swing';
-    const matchesSearch =
-      title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (swing.description &&
-        swing.description.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    if (filterType === 'all') return matchesSearch;
-
-    // Handle both 'tags' array and 'tag' single value from backend
-    const tags = swing.tags || (swing.tag ? [swing.tag] : []);
-    const hasMatchingTag = tags.some(
-      (tag: SwingTag) =>
-        tag && tag.type === filterType && tag.value === filterValue
-    );
-
-    return matchesSearch && hasMatchingTag;
+    return true;
   });
 
   const handleSwingSelect = (swing: Swing) => {
@@ -126,42 +105,6 @@ export default function LibraryPage() {
                 <Plus className="h-4 w-4 mr-2" />
                 Upload Swing
               </Button>
-            </div>
-          </div>
-
-          {/* Search and Filter Controls */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search swings..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <select
-                value={filterType}
-                onChange={e => setFilterType(e.target.value as FilterType)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value="all">All Swings</option>
-                <option value="outcome">Outcome</option>
-                <option value="club">Club</option>
-              </select>
-              {filterType !== 'all' && (
-                <input
-                  type="text"
-                  placeholder={`Filter by ${filterType}...`}
-                  value={filterValue}
-                  onChange={e => setFilterValue(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              )}
             </div>
           </div>
 
@@ -251,22 +194,18 @@ export default function LibraryPage() {
                 className="text-center py-16"
               >
                 <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="h-12 w-12 text-gray-400" />
+                  <Plus className="h-12 w-12 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-1">
                   No swings found
                 </h3>
                 <p className="text-gray-600 mb-6 text-sm">
-                  {searchQuery || filterValue
-                    ? 'Try adjusting your search or filters'
-                    : 'Upload your first golf swing to get started'}
+                  Upload your first golf swing to get started
                 </p>
-                {!searchQuery && !filterValue && (
-                  <Button onClick={() => router.push('/upload')}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Upload Your First Swing
-                  </Button>
-                )}
+                <Button onClick={() => router.push('/upload')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Upload Your First Swing
+                </Button>
               </motion.div>
             )}
           </AnimatePresence>
