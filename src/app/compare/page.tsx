@@ -1,21 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Play, Settings, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import {
+  Play,
+  Eye,
+  EyeOff,
+  ArrowLeft,
+  PlayCircle,
+  Scissors,
+} from 'lucide-react';
 import Layout from '../../components/layout/Layout';
 import Button from '../../components/ui/Button';
 import { Card, CardContent, CardHeader } from '../../components/ui/Card';
 import ProtectedRoute from '../../components/auth/ProtectedRoute';
 import { useAppSelector, useAppDispatch } from '../../lib/store';
-import {
-  setOverlayMode,
-  setOpacity,
-  toggleSyncPlayback,
-  toggleTimeline,
-  toggleHighlightDifferences,
-} from '../../features/overlay/overlaySlice';
+import { setOverlayMode } from '../../features/overlay/overlaySlice';
 import {
   usePoseAnalysis,
   useGeneratePoseAnalysis,
@@ -28,11 +29,21 @@ export default function ComparePage() {
   const { library, selectedSwings: reduxSelectedSwings } = useAppSelector(
     state => state.swings
   );
-  const { settings, isOverlayMode } = useAppSelector(state => state.overlay);
+  const { isOverlayMode } = useAppSelector(state => state.overlay);
 
   const [selectedSwingIds, setSelectedSwingIds] = useState<string[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [videoTimings, setVideoTimings] = useState<
+    { start: number; end: number }[]
+  >([
+    { start: 0, end: 0 },
+    { start: 0, end: 0 },
+  ]);
+  const [videoDurations, setVideoDurations] = useState<number[]>([0, 0]);
+  const [isSettingStart, setIsSettingStart] = useState<number | null>(null);
+  const [isSettingEnd, setIsSettingEnd] = useState<number | null>(null);
+  const [isPlayingBoth, setIsPlayingBoth] = useState(false);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   const selectedSwings = library.filter(swing =>
     selectedSwingIds.includes(swing.id)
@@ -103,6 +114,104 @@ export default function ComparePage() {
     }
   };
 
+  const handlePlayBothVideos = () => {
+    videoRefs.current.forEach((video, index) => {
+      if (video && videoTimings[index]) {
+        video.currentTime = videoTimings[index].start;
+        video.play();
+      }
+    });
+    setIsPlaying(true);
+    setIsPlayingBoth(true);
+  };
+
+  const handlePauseBothVideos = () => {
+    videoRefs.current.forEach(video => {
+      if (video) {
+        video.pause();
+      }
+    });
+    setIsPlaying(false);
+    setIsPlayingBoth(false);
+  };
+
+  const handleStartSettingMode = (index: number, type: 'start' | 'end') => {
+    console.log('Starting setting mode:', { index, type });
+    if (type === 'start') {
+      setIsSettingStart(index);
+      setIsSettingEnd(null);
+    } else {
+      setIsSettingEnd(index);
+      setIsSettingStart(null);
+    }
+  };
+
+  const handleTimelineClick = (
+    index: number,
+    clickX: number,
+    timelineWidth: number
+  ) => {
+    const video = videoRefs.current[index];
+    const duration = videoDurations[index];
+
+    console.log('Timeline click:', {
+      index,
+      clickX,
+      timelineWidth,
+      duration,
+      video: !!video,
+    });
+
+    if (video && duration > 0) {
+      const clickTime = (clickX / timelineWidth) * duration;
+      console.log('Setting video time to:', clickTime);
+      video.currentTime = clickTime;
+
+      if (isSettingStart === index) {
+        console.log('Setting start time to:', clickTime);
+        setVideoTimings(prev => {
+          const newTimings = [...prev];
+          newTimings[index] = {
+            ...newTimings[index],
+            start: clickTime,
+            end: newTimings[index]?.end || duration,
+          };
+          console.log('New timings after start:', newTimings);
+          return newTimings;
+        });
+        setIsSettingStart(null);
+      } else if (isSettingEnd === index) {
+        console.log('Setting end time to:', clickTime);
+        setVideoTimings(prev => {
+          const newTimings = [...prev];
+          newTimings[index] = {
+            ...newTimings[index],
+            start: newTimings[index]?.start || 0,
+            end: clickTime,
+          };
+          console.log('New timings after end:', newTimings);
+          return newTimings;
+        });
+        setIsSettingEnd(null);
+      } else {
+        console.log('Just seeking to time:', clickTime);
+      }
+    } else {
+      console.log('Cannot set time - missing video or duration:', {
+        video: !!video,
+        duration,
+      });
+    }
+  };
+
+  const handleResetTimings = (index: number) => {
+    setVideoTimings(prev => {
+      const newTimings = [...prev];
+      newTimings[index] = { start: 0, end: 0 };
+      return newTimings;
+    });
+  };
+
   // const handleTimeUpdate = (time: number) => {
   //   setCurrentTime(time);
   // };
@@ -134,6 +243,23 @@ export default function ComparePage() {
             </div>
 
             <div className="flex space-x-3 mt-4 sm:mt-0">
+              {selectedSwingIds.length >= 2 && (
+                <Button
+                  variant="primary"
+                  onClick={
+                    isPlaying ? handlePauseBothVideos : handlePlayBothVideos
+                  }
+                  className="flex items-center"
+                >
+                  {isPlaying ? (
+                    <PlayCircle className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Play className="h-4 w-4 mr-2" />
+                  )}
+                  {isPlaying ? 'Pause Both' : 'Play Both'}
+                </Button>
+              )}
+
               <Button
                 variant={isOverlayMode ? 'primary' : 'outline'}
                 onClick={() => dispatch(setOverlayMode(!isOverlayMode))}
@@ -145,15 +271,6 @@ export default function ComparePage() {
                   <Eye className="h-4 w-4 mr-2" />
                 )}
                 {isOverlayMode ? 'Side-by-Side' : 'Overlay'}
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => setShowSettings(!showSettings)}
-                className="flex items-center"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
               </Button>
             </div>
           </div>
@@ -216,9 +333,6 @@ export default function ComparePage() {
                               );
                             })()}
                           </div>
-                          <h3 className="font-medium text-gray-900 truncate mb-1">
-                            {swing.title}
-                          </h3>
                           <div className="flex flex-wrap gap-1">
                             {swing.tags?.slice(0, 2).map(tag => (
                               <span
@@ -245,80 +359,6 @@ export default function ComparePage() {
           {/* Comparison Player */}
           {selectedSwingIds.length >= 2 && (
             <div className="space-y-6">
-              {/* Settings Panel */}
-              <AnimatePresence>
-                {showSettings && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                  >
-                    <Card className="mb-6">
-                      <CardHeader>
-                        <h3 className="text-lg font-semibold">
-                          Comparison Settings
-                        </h3>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Overlay Opacity:{' '}
-                              {Math.round(settings.opacity * 100)}%
-                            </label>
-                            <input
-                              type="range"
-                              min="0"
-                              max="1"
-                              step="0.1"
-                              value={settings.opacity}
-                              onChange={e =>
-                                dispatch(setOpacity(parseFloat(e.target.value)))
-                              }
-                              className="w-full"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={settings.syncPlayback}
-                                onChange={() => dispatch(toggleSyncPlayback())}
-                                className="mr-2"
-                              />
-                              Sync Playback
-                            </label>
-
-                            <label className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={settings.showTimeline}
-                                onChange={() => dispatch(toggleTimeline())}
-                                className="mr-2"
-                              />
-                              Show Timeline
-                            </label>
-
-                            <label className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={settings.highlightDifferences}
-                                onChange={() =>
-                                  dispatch(toggleHighlightDifferences())
-                                }
-                                className="mr-2"
-                              />
-                              Highlight Differences
-                            </label>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
               {/* Video Players */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {selectedSwings.map((swing, index: number) => (
@@ -328,49 +368,231 @@ export default function ComparePage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <Card>
-                      <CardHeader>
+                    <div className="space-y-3">
+                      {/* Intuitive Timeline Controls */}
+                      <div className="space-y-3 bg-gray-50 rounded-lg p-4">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold">
-                            {swing.title || 'Untitled Swing'}
-                          </h3>
+                          <span className="text-sm font-medium text-gray-700">
+                            Swing {index + 1}
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              videoTimings[index]?.start > 0 ||
+                              videoTimings[index]?.end > 0
+                                ? 'bg-green-100 text-green-800'
+                                : 'text-gray-500'
+                            }`}
+                          >
+                            {videoTimings[index]?.start?.toFixed(1) || '0.0'}s -{' '}
+                            {videoTimings[index]?.end?.toFixed(1) || '0.0'}s
+                          </span>
+                        </div>
+
+                        {/* Custom Timeline */}
+                        <div className="relative">
+                          <div
+                            className="h-8 bg-gray-200 rounded-lg cursor-pointer relative overflow-hidden"
+                            onClick={e => {
+                              const rect =
+                                e.currentTarget.getBoundingClientRect();
+                              const clickX = e.clientX - rect.left;
+                              handleTimelineClick(index, clickX, rect.width);
+                            }}
+                          >
+                            {/* Progress bar */}
+                            <div
+                              className="h-full bg-blue-400 rounded-lg transition-all duration-100"
+                              style={{
+                                width: `${videoDurations[index] > 0 ? ((videoRefs.current[index]?.currentTime || 0) / videoDurations[index]) * 100 : 0}%`,
+                              }}
+                            />
+
+                            {/* Start marker */}
+                            {videoTimings[index]?.start > 0 && (
+                              <div
+                                className="absolute top-0 h-full w-1 bg-green-500 cursor-pointer hover:bg-green-600"
+                                style={{
+                                  left: `${(videoTimings[index].start / videoDurations[index]) * 100}%`,
+                                }}
+                                title={`Start: ${videoTimings[index].start.toFixed(1)}s`}
+                              />
+                            )}
+
+                            {/* End marker */}
+                            {videoTimings[index]?.end > 0 && (
+                              <div
+                                className="absolute top-0 h-full w-1 bg-red-500 cursor-pointer hover:bg-red-600"
+                                style={{
+                                  left: `${(videoTimings[index].end / videoDurations[index]) * 100}%`,
+                                }}
+                                title={`End: ${videoTimings[index].end.toFixed(1)}s`}
+                              />
+                            )}
+
+                            {/* Setting mode indicator */}
+                            {isSettingStart === index && (
+                              <div className="absolute inset-0 bg-green-100 bg-opacity-50 rounded-lg flex items-center justify-center">
+                                <span className="text-green-700 text-xs font-medium">
+                                  Click to set START point
+                                </span>
+                              </div>
+                            )}
+                            {isSettingEnd === index && (
+                              <div className="absolute inset-0 bg-red-100 bg-opacity-50 rounded-lg flex items-center justify-center">
+                                <span className="text-red-700 text-xs font-medium">
+                                  Click to set END point
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Time labels */}
+                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>0s</span>
+                            <span>
+                              {videoDurations[index]?.toFixed(1) || '0.0'}s
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Control buttons */}
+                        <div className="flex items-center justify-center space-x-2">
+                          <Button
+                            variant={
+                              isSettingStart === index ? 'primary' : 'outline'
+                            }
+                            size="sm"
+                            onClick={() => {
+                              const video = videoRefs.current[index];
+                              if (video) {
+                                const currentTime = video.currentTime;
+                                console.log(
+                                  'Setting start time to current time:',
+                                  currentTime
+                                );
+                                setVideoTimings(prev => {
+                                  const newTimings = [...prev];
+                                  newTimings[index] = {
+                                    ...newTimings[index],
+                                    start: currentTime,
+                                    end:
+                                      newTimings[index]?.end ||
+                                      videoDurations[index] ||
+                                      0,
+                                  };
+                                  return newTimings;
+                                });
+                              }
+                            }}
+                            className="text-xs px-3 py-1"
+                          >
+                            <Scissors className="h-3 w-3 mr-1" />
+                            Set Start (Current Time)
+                          </Button>
+                          <Button
+                            variant={
+                              isSettingEnd === index ? 'primary' : 'outline'
+                            }
+                            size="sm"
+                            onClick={() => {
+                              const video = videoRefs.current[index];
+                              if (video) {
+                                const currentTime = video.currentTime;
+                                console.log(
+                                  'Setting end time to current time:',
+                                  currentTime
+                                );
+                                setVideoTimings(prev => {
+                                  const newTimings = [...prev];
+                                  newTimings[index] = {
+                                    ...newTimings[index],
+                                    start: newTimings[index]?.start || 0,
+                                    end: currentTime,
+                                  };
+                                  return newTimings;
+                                });
+                              }
+                            }}
+                            className="text-xs px-3 py-1"
+                          >
+                            <Scissors className="h-3 w-3 mr-1" />
+                            Set End (Current Time)
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleSwingSelect(swing.id)}
+                            onClick={() => handleResetTimings(index)}
+                            className="text-xs px-3 py-1 text-gray-500"
                           >
-                            Remove
+                            Reset
                           </Button>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                          {(() => {
-                            const videoUrl =
-                              swing.videoUrl ||
-                              swing.video_url ||
-                              swing.file_url;
-                            const isValidUrl =
-                              videoUrl && videoUrl.startsWith('http');
+                      </div>
 
-                            return isValidUrl ? (
-                              <video
-                                src={videoUrl}
-                                className="w-full h-full object-contain"
-                                muted
-                                preload="metadata"
-                                playsInline
-                                controls={true}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
-                                <Play className="h-12 w-12 text-green-400" />
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      </CardContent>
-                    </Card>
+                      <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden">
+                        {(() => {
+                          const videoUrl =
+                            swing.videoUrl || swing.video_url || swing.file_url;
+                          const isValidUrl =
+                            videoUrl && videoUrl.startsWith('http');
+
+                          return isValidUrl ? (
+                            <video
+                              ref={video => {
+                                videoRefs.current[index] = video;
+                              }}
+                              src={videoUrl}
+                              className="w-full h-full object-contain"
+                              muted
+                              preload="metadata"
+                              playsInline
+                              controls={true}
+                              onPlay={() => {
+                                // Only set isPlaying to true if we're not in "Play Both" mode
+                                if (!isPlayingBoth) {
+                                  setIsPlaying(true);
+                                }
+                              }}
+                              onPause={() => {
+                                // Only set isPlaying to false if we're not in "Play Both" mode
+                                if (!isPlayingBoth) {
+                                  setIsPlaying(false);
+                                }
+                              }}
+                              onLoadedMetadata={() => {
+                                const video = videoRefs.current[index];
+                                if (video) {
+                                  setVideoDurations(prev => {
+                                    const newDurations = [...prev];
+                                    newDurations[index] = video.duration;
+                                    return newDurations;
+                                  });
+                                }
+                              }}
+                              onTimeUpdate={() => {
+                                const video = videoRefs.current[index];
+                                if (
+                                  video &&
+                                  videoTimings[index]?.end > 0 &&
+                                  video.currentTime >= videoTimings[index].end
+                                ) {
+                                  // Only auto-loop if we're in "Play Both" mode
+                                  if (isPlayingBoth) {
+                                    video.pause();
+                                    video.currentTime =
+                                      videoTimings[index].start;
+                                  }
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
+                              <Play className="h-12 w-12 text-green-400" />
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </motion.div>
                 ))}
               </div>
