@@ -115,17 +115,9 @@ export default function ComparePage() {
   const handlePlayBothVideos = () => {
     videoRefs.current.forEach((video, index) => {
       if (video && videoTimings[index]) {
-        // Only reset to start time if the video is at the beginning or past the end time
-        const currentTime = video.currentTime;
-        const startTime = videoTimings[index].start;
-        const endTime = videoTimings[index].end;
-
-        if (
-          currentTime <= startTime ||
-          (endTime > 0 && currentTime >= endTime)
-        ) {
-          video.currentTime = startTime;
-        }
+        // Start from the start time (or beginning if no start time set)
+        const startTime = videoTimings[index].start || 0;
+        video.currentTime = startTime;
         video.play();
       }
     });
@@ -444,12 +436,21 @@ export default function ComparePage() {
                                   videoTimings[index]?.end > 0 &&
                                   video.currentTime >= videoTimings[index].end
                                 ) {
-                                  // Only auto-loop if we're in "Play Both" mode
+                                  // Only handle end behavior if we're in "Play Both" mode
                                   if (isPlayingBoth) {
                                     video.pause();
-                                    video.currentTime =
-                                      videoTimings[index].start;
+                                    // Keep video at end time (final frame) but reset button state
+                                    setIsPlaying(false);
+                                    setIsPlayingBoth(false);
                                   }
+                                }
+                              }}
+                              onEnded={() => {
+                                // Handle when video reaches natural end (no end time set)
+                                if (isPlayingBoth) {
+                                  // Reset button state when video naturally ends
+                                  setIsPlaying(false);
+                                  setIsPlayingBoth(false);
                                 }
                               }}
                             />
