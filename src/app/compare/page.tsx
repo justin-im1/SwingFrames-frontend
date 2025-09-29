@@ -234,7 +234,7 @@ export default function ComparePage() {
                         onClick={() => handleSwingSelect(swing.id)}
                       >
                         <CardContent className="p-4">
-                          <div className="aspect-video bg-gray-900 rounded-lg mb-3 overflow-hidden">
+                          <div className="bg-gray-900 rounded-lg mb-3 overflow-hidden w-48 mx-auto">
                             {(() => {
                               const videoUrl =
                                 swing.videoUrl ||
@@ -255,7 +255,7 @@ export default function ComparePage() {
                                 <img
                                   src={swing.thumbnailUrl}
                                   alt={swing.title}
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-contain"
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
@@ -389,7 +389,7 @@ export default function ComparePage() {
                         </div>
                       </div>
 
-                      <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden">
+                      <div className="bg-gray-900 rounded-lg overflow-hidden w-64 mx-auto">
                         {(() => {
                           const videoUrl =
                             swing.videoUrl || swing.video_url || swing.file_url;
