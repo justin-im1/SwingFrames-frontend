@@ -40,8 +40,6 @@ export default function ComparePage() {
     { start: 0, end: 0 },
   ]);
   const [videoDurations, setVideoDurations] = useState<number[]>([0, 0]);
-  const [isSettingStart, setIsSettingStart] = useState<number | null>(null);
-  const [isSettingEnd, setIsSettingEnd] = useState<number | null>(null);
   const [isPlayingBoth, setIsPlayingBoth] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
@@ -117,7 +115,17 @@ export default function ComparePage() {
   const handlePlayBothVideos = () => {
     videoRefs.current.forEach((video, index) => {
       if (video && videoTimings[index]) {
-        video.currentTime = videoTimings[index].start;
+        // Only reset to start time if the video is at the beginning or past the end time
+        const currentTime = video.currentTime;
+        const startTime = videoTimings[index].start;
+        const endTime = videoTimings[index].end;
+
+        if (
+          currentTime <= startTime ||
+          (endTime > 0 && currentTime >= endTime)
+        ) {
+          video.currentTime = startTime;
+        }
         video.play();
       }
     });
@@ -133,75 +141,6 @@ export default function ComparePage() {
     });
     setIsPlaying(false);
     setIsPlayingBoth(false);
-  };
-
-  const handleStartSettingMode = (index: number, type: 'start' | 'end') => {
-    console.log('Starting setting mode:', { index, type });
-    if (type === 'start') {
-      setIsSettingStart(index);
-      setIsSettingEnd(null);
-    } else {
-      setIsSettingEnd(index);
-      setIsSettingStart(null);
-    }
-  };
-
-  const handleTimelineClick = (
-    index: number,
-    clickX: number,
-    timelineWidth: number
-  ) => {
-    const video = videoRefs.current[index];
-    const duration = videoDurations[index];
-
-    console.log('Timeline click:', {
-      index,
-      clickX,
-      timelineWidth,
-      duration,
-      video: !!video,
-    });
-
-    if (video && duration > 0) {
-      const clickTime = (clickX / timelineWidth) * duration;
-      console.log('Setting video time to:', clickTime);
-      video.currentTime = clickTime;
-
-      if (isSettingStart === index) {
-        console.log('Setting start time to:', clickTime);
-        setVideoTimings(prev => {
-          const newTimings = [...prev];
-          newTimings[index] = {
-            ...newTimings[index],
-            start: clickTime,
-            end: newTimings[index]?.end || duration,
-          };
-          console.log('New timings after start:', newTimings);
-          return newTimings;
-        });
-        setIsSettingStart(null);
-      } else if (isSettingEnd === index) {
-        console.log('Setting end time to:', clickTime);
-        setVideoTimings(prev => {
-          const newTimings = [...prev];
-          newTimings[index] = {
-            ...newTimings[index],
-            start: newTimings[index]?.start || 0,
-            end: clickTime,
-          };
-          console.log('New timings after end:', newTimings);
-          return newTimings;
-        });
-        setIsSettingEnd(null);
-      } else {
-        console.log('Just seeking to time:', clickTime);
-      }
-    } else {
-      console.log('Cannot set time - missing video or duration:', {
-        video: !!video,
-        duration,
-      });
-    }
   };
 
   const handleResetTimings = (index: number) => {
@@ -369,7 +308,7 @@ export default function ComparePage() {
                     transition={{ delay: index * 0.1 }}
                   >
                     <div className="space-y-3">
-                      {/* Intuitive Timeline Controls */}
+                      {/* Swing Info */}
                       <div className="space-y-3 bg-gray-50 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium text-gray-700">
@@ -388,79 +327,10 @@ export default function ComparePage() {
                           </span>
                         </div>
 
-                        {/* Custom Timeline */}
-                        <div className="relative">
-                          <div
-                            className="h-8 bg-gray-200 rounded-lg cursor-pointer relative overflow-hidden"
-                            onClick={e => {
-                              const rect =
-                                e.currentTarget.getBoundingClientRect();
-                              const clickX = e.clientX - rect.left;
-                              handleTimelineClick(index, clickX, rect.width);
-                            }}
-                          >
-                            {/* Progress bar */}
-                            <div
-                              className="h-full bg-blue-400 rounded-lg transition-all duration-100"
-                              style={{
-                                width: `${videoDurations[index] > 0 ? ((videoRefs.current[index]?.currentTime || 0) / videoDurations[index]) * 100 : 0}%`,
-                              }}
-                            />
-
-                            {/* Start marker */}
-                            {videoTimings[index]?.start > 0 && (
-                              <div
-                                className="absolute top-0 h-full w-1 bg-green-500 cursor-pointer hover:bg-green-600"
-                                style={{
-                                  left: `${(videoTimings[index].start / videoDurations[index]) * 100}%`,
-                                }}
-                                title={`Start: ${videoTimings[index].start.toFixed(1)}s`}
-                              />
-                            )}
-
-                            {/* End marker */}
-                            {videoTimings[index]?.end > 0 && (
-                              <div
-                                className="absolute top-0 h-full w-1 bg-red-500 cursor-pointer hover:bg-red-600"
-                                style={{
-                                  left: `${(videoTimings[index].end / videoDurations[index]) * 100}%`,
-                                }}
-                                title={`End: ${videoTimings[index].end.toFixed(1)}s`}
-                              />
-                            )}
-
-                            {/* Setting mode indicator */}
-                            {isSettingStart === index && (
-                              <div className="absolute inset-0 bg-green-100 bg-opacity-50 rounded-lg flex items-center justify-center">
-                                <span className="text-green-700 text-xs font-medium">
-                                  Click to set START point
-                                </span>
-                              </div>
-                            )}
-                            {isSettingEnd === index && (
-                              <div className="absolute inset-0 bg-red-100 bg-opacity-50 rounded-lg flex items-center justify-center">
-                                <span className="text-red-700 text-xs font-medium">
-                                  Click to set END point
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Time labels */}
-                          <div className="flex justify-between text-xs text-gray-500 mt-1">
-                            <span>0s</span>
-                            <span>
-                              {videoDurations[index]?.toFixed(1) || '0.0'}s
-                            </span>
-                          </div>
-                        </div>
-
                         {/* Control buttons */}
                         <div className="flex items-center justify-center space-x-2">
                           <Button
-                            variant={
-                              isSettingStart === index ? 'primary' : 'outline'
-                            }
+                            variant="outline"
                             size="sm"
                             onClick={() => {
                               const video = videoRefs.current[index];
@@ -490,9 +360,7 @@ export default function ComparePage() {
                             Set Start (Current Time)
                           </Button>
                           <Button
-                            variant={
-                              isSettingEnd === index ? 'primary' : 'outline'
-                            }
+                            variant="outline"
                             size="sm"
                             onClick={() => {
                               const video = videoRefs.current[index];
