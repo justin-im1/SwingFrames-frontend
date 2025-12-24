@@ -16,12 +16,14 @@ interface CardProps
   > {
   children: React.ReactNode;
   hover?: boolean;
+  glass?: boolean;
 }
 
 export function Card({
   className,
   children,
   hover = false,
+  glass = false,
   ...props
 }: CardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -30,11 +32,14 @@ export function Card({
     <motion.div
       ref={cardRef}
       className={cn(
-        'bg-white rounded-lg border border-gray-200 shadow-sm',
-        hover && 'hover:shadow-md transition-shadow',
+        'rounded-2xl transition-all duration-300',
+        glass
+          ? 'glass-card shadow-xl hover:shadow-2xl'
+          : 'bg-white border border-gray-100 shadow-sm hover:shadow-lg',
+        hover && 'hover:-translate-y-1',
         className
       )}
-      whileHover={hover ? { y: -2 } : undefined}
+      whileHover={hover ? { y: -6, scale: 1.02 } : undefined}
       {...props}
     >
       {children}

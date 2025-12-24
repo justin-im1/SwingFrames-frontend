@@ -41,6 +41,8 @@ export default function ComparePage() {
   ]);
   const [videoDurations, setVideoDurations] = useState<number[]>([0, 0]);
   const [isPlayingBoth, setIsPlayingBoth] = useState(false);
+  const [overlayOpacity, setOverlayOpacity] = useState(0.5);
+  const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   const selectedSwings = library.filter(swing =>
@@ -291,180 +293,533 @@ export default function ComparePage() {
           {selectedSwingIds.length >= 2 && (
             <div className="space-y-6">
               {/* Video Players */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {selectedSwings.map((swing, index: number) => (
-                  <motion.div
-                    key={swing.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <div className="space-y-3">
-                      {/* Swing Info */}
-                      <div className="space-y-3 bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-700">
-                            Swing {index + 1}
-                          </span>
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full ${
-                              videoTimings[index]?.start > 0 ||
-                              videoTimings[index]?.end > 0
-                                ? 'bg-green-100 text-green-800'
-                                : 'text-gray-500'
-                            }`}
-                          >
-                            {videoTimings[index]?.start?.toFixed(1) || '0.0'}s -{' '}
-                            {videoTimings[index]?.end?.toFixed(1) || '0.0'}s
-                          </span>
-                        </div>
+              {isOverlayMode ? (
+                <div className="space-y-4">
+                  {/* Overlay Mode - Single video view with blending */}
+                  <div className="relative bg-gray-900 rounded-lg overflow-hidden w-64 mx-auto">
+                    {/* Background Video (Swing 1) */}
+                    <video
+                      ref={video => {
+                        videoRefs.current[0] = video;
+                      }}
+                      src={
+                        selectedSwings[0]?.videoUrl ||
+                        selectedSwings[0]?.video_url ||
+                        selectedSwings[0]?.file_url
+                      }
+                      className="w-full h-full object-contain"
+                      muted
+                      preload="metadata"
+                      playsInline
+                      controls={false}
+                      onPlay={() => {
+                        if (!isPlayingBoth) {
+                          setIsPlaying(true);
+                        }
+                      }}
+                      onPause={() => {
+                        if (!isPlayingBoth) {
+                          setIsPlaying(false);
+                        }
+                      }}
+                      onLoadedMetadata={() => {
+                        const video = videoRefs.current[0];
+                        if (video) {
+                          setVideoDurations(prev => {
+                            const newDurations = [...prev];
+                            newDurations[0] = video.duration;
+                            return newDurations;
+                          });
+                        }
+                      }}
+                      onTimeUpdate={() => {
+                        const video = videoRefs.current[0];
+                        if (
+                          video &&
+                          videoTimings[0]?.end > 0 &&
+                          video.currentTime >= videoTimings[0].end
+                        ) {
+                          if (isPlayingBoth) {
+                            video.pause();
+                            setIsPlaying(false);
+                            setIsPlayingBoth(false);
+                          }
+                        }
+                      }}
+                      onEnded={() => {
+                        if (isPlayingBoth) {
+                          setIsPlaying(false);
+                          setIsPlayingBoth(false);
+                        }
+                      }}
+                    />
 
-                        {/* Control buttons */}
-                        <div className="flex items-center justify-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const video = videoRefs.current[index];
-                              if (video) {
-                                const currentTime = video.currentTime;
-                                console.log(
-                                  'Setting start time to current time:',
-                                  currentTime
-                                );
-                                setVideoTimings(prev => {
-                                  const newTimings = [...prev];
-                                  newTimings[index] = {
-                                    ...newTimings[index],
-                                    start: currentTime,
-                                    end:
-                                      newTimings[index]?.end ||
-                                      videoDurations[index] ||
-                                      0,
-                                  };
-                                  return newTimings;
-                                });
-                              }
-                            }}
-                            className="text-xs px-3 py-1"
-                          >
-                            <Scissors className="h-3 w-3 mr-1" />
-                            Set Start (Current Time)
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const video = videoRefs.current[index];
-                              if (video) {
-                                const currentTime = video.currentTime;
-                                console.log(
-                                  'Setting end time to current time:',
-                                  currentTime
-                                );
-                                setVideoTimings(prev => {
-                                  const newTimings = [...prev];
-                                  newTimings[index] = {
-                                    ...newTimings[index],
-                                    start: newTimings[index]?.start || 0,
-                                    end: currentTime,
-                                  };
-                                  return newTimings;
-                                });
-                              }
-                            }}
-                            className="text-xs px-3 py-1"
-                          >
-                            <Scissors className="h-3 w-3 mr-1" />
-                            Set End (Current Time)
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleResetTimings(index)}
-                            className="text-xs px-3 py-1 text-gray-500"
-                          >
-                            Reset
-                          </Button>
-                        </div>
+                    {/* Overlay Video (Swing 2) */}
+                    <video
+                      ref={video => {
+                        videoRefs.current[1] = video;
+                      }}
+                      src={
+                        selectedSwings[1]?.videoUrl ||
+                        selectedSwings[1]?.video_url ||
+                        selectedSwings[1]?.file_url
+                      }
+                      className="absolute inset-0 w-full h-full object-contain"
+                      style={{ opacity: overlayOpacity }}
+                      muted
+                      preload="metadata"
+                      playsInline
+                      controls={false}
+                      onLoadedMetadata={() => {
+                        const video = videoRefs.current[1];
+                        if (video) {
+                          setVideoDurations(prev => {
+                            const newDurations = [...prev];
+                            newDurations[1] = video.duration;
+                            return newDurations;
+                          });
+                        }
+                      }}
+                      onTimeUpdate={() => {
+                        const video = videoRefs.current[1];
+                        if (
+                          video &&
+                          videoTimings[1]?.end > 0 &&
+                          video.currentTime >= videoTimings[1].end
+                        ) {
+                          if (isPlayingBoth) {
+                            video.pause();
+                            setIsPlaying(false);
+                            setIsPlayingBoth(false);
+                          }
+                        }
+                      }}
+                      onEnded={() => {
+                        if (isPlayingBoth) {
+                          setIsPlaying(false);
+                          setIsPlayingBoth(false);
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {/* Overlay Controls */}
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                    {/* Opacity Control */}
+                    <div className="flex items-center space-x-4">
+                      <span className="text-sm font-medium text-gray-700">
+                        Overlay Opacity:
+                      </span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={overlayOpacity}
+                        onChange={e =>
+                          setOverlayOpacity(parseFloat(e.target.value))
+                        }
+                        className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <span className="text-sm text-gray-600 w-12">
+                        {Math.round(overlayOpacity * 100)}%
+                      </span>
+                    </div>
+
+                    {/* Video Info */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-700">
+                          Swing 1 (Background):
+                        </span>
+                        <span className="text-gray-600">
+                          {videoTimings[0]?.start?.toFixed(1) || '0.0'}s -{' '}
+                          {videoTimings[0]?.end?.toFixed(1) || '0.0'}s
+                        </span>
                       </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-700">
+                          Swing 2 (Overlay):
+                        </span>
+                        <span className="text-gray-600">
+                          {videoTimings[1]?.start?.toFixed(1) || '0.0'}s -{' '}
+                          {videoTimings[1]?.end?.toFixed(1) || '0.0'}s
+                        </span>
+                      </div>
+                    </div>
 
-                      <div className="bg-gray-900 rounded-lg overflow-hidden w-64 mx-auto">
-                        {(() => {
-                          const videoUrl =
-                            swing.videoUrl || swing.video_url || swing.file_url;
-                          const isValidUrl =
-                            videoUrl && videoUrl.startsWith('http');
-
-                          return isValidUrl ? (
-                            <video
-                              ref={video => {
-                                videoRefs.current[index] = video;
-                              }}
-                              src={videoUrl}
-                              className="w-full h-full object-contain"
-                              muted
-                              preload="metadata"
-                              playsInline
-                              controls={true}
-                              onPlay={() => {
-                                // Only set isPlaying to true if we're not in "Play Both" mode
-                                if (!isPlayingBoth) {
-                                  setIsPlaying(true);
-                                }
-                              }}
-                              onPause={() => {
-                                // Only set isPlaying to false if we're not in "Play Both" mode
-                                if (!isPlayingBoth) {
-                                  setIsPlaying(false);
-                                }
-                              }}
-                              onLoadedMetadata={() => {
-                                const video = videoRefs.current[index];
+                    {/* External Video Controls */}
+                    <div className="space-y-4">
+                      {/* Swing 1 Controls */}
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-gray-700">
+                          Swing 1 (Background) Controls:
+                        </h4>
+                        <div className="space-y-2">
+                          {/* Timeline Scrubber */}
+                          <div className="relative">
+                            <input
+                              type="range"
+                              min="0"
+                              max={videoDurations[0] || 0}
+                              step="0.1"
+                              value={videoRefs.current[0]?.currentTime || 0}
+                              onChange={e => {
+                                const video = videoRefs.current[0];
                                 if (video) {
-                                  setVideoDurations(prev => {
-                                    const newDurations = [...prev];
-                                    newDurations[index] = video.duration;
-                                    return newDurations;
+                                  video.currentTime = parseFloat(
+                                    e.target.value
+                                  );
+                                }
+                              }}
+                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <div className="flex justify-between text-xs text-gray-500 mt-1">
+                              <span>0s</span>
+                              <span>
+                                {videoDurations[0]?.toFixed(1) || '0.0'}s
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Control Buttons */}
+                          <div className="flex items-center justify-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const video = videoRefs.current[0];
+                                if (video) {
+                                  const currentTime = video.currentTime;
+                                  setVideoTimings(prev => {
+                                    const newTimings = [...prev];
+                                    newTimings[0] = {
+                                      ...newTimings[0],
+                                      start: currentTime,
+                                      end:
+                                        newTimings[0]?.end ||
+                                        videoDurations[0] ||
+                                        0,
+                                    };
+                                    return newTimings;
                                   });
                                 }
                               }}
-                              onTimeUpdate={() => {
+                              className="text-xs px-3 py-1"
+                            >
+                              <Scissors className="h-3 w-3 mr-1" />
+                              Set Start
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const video = videoRefs.current[0];
+                                if (video) {
+                                  const currentTime = video.currentTime;
+                                  setVideoTimings(prev => {
+                                    const newTimings = [...prev];
+                                    newTimings[0] = {
+                                      ...newTimings[0],
+                                      start: newTimings[0]?.start || 0,
+                                      end: currentTime,
+                                    };
+                                    return newTimings;
+                                  });
+                                }
+                              }}
+                              className="text-xs px-3 py-1"
+                            >
+                              <Scissors className="h-3 w-3 mr-1" />
+                              Set End
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleResetTimings(0)}
+                              className="text-xs px-3 py-1 text-gray-500"
+                            >
+                              Reset
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Swing 2 Controls */}
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-gray-700">
+                          Swing 2 (Overlay) Controls:
+                        </h4>
+                        <div className="space-y-2">
+                          {/* Timeline Scrubber */}
+                          <div className="relative">
+                            <input
+                              type="range"
+                              min="0"
+                              max={videoDurations[1] || 0}
+                              step="0.1"
+                              value={videoRefs.current[1]?.currentTime || 0}
+                              onChange={e => {
+                                const video = videoRefs.current[1];
+                                if (video) {
+                                  video.currentTime = parseFloat(
+                                    e.target.value
+                                  );
+                                }
+                              }}
+                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <div className="flex justify-between text-xs text-gray-500 mt-1">
+                              <span>0s</span>
+                              <span>
+                                {videoDurations[1]?.toFixed(1) || '0.0'}s
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Control Buttons */}
+                          <div className="flex items-center justify-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const video = videoRefs.current[1];
+                                if (video) {
+                                  const currentTime = video.currentTime;
+                                  setVideoTimings(prev => {
+                                    const newTimings = [...prev];
+                                    newTimings[1] = {
+                                      ...newTimings[1],
+                                      start: currentTime,
+                                      end:
+                                        newTimings[1]?.end ||
+                                        videoDurations[1] ||
+                                        0,
+                                    };
+                                    return newTimings;
+                                  });
+                                }
+                              }}
+                              className="text-xs px-3 py-1"
+                            >
+                              <Scissors className="h-3 w-3 mr-1" />
+                              Set Start
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const video = videoRefs.current[1];
+                                if (video) {
+                                  const currentTime = video.currentTime;
+                                  setVideoTimings(prev => {
+                                    const newTimings = [...prev];
+                                    newTimings[1] = {
+                                      ...newTimings[1],
+                                      start: newTimings[1]?.start || 0,
+                                      end: currentTime,
+                                    };
+                                    return newTimings;
+                                  });
+                                }
+                              }}
+                              className="text-xs px-3 py-1"
+                            >
+                              <Scissors className="h-3 w-3 mr-1" />
+                              Set End
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleResetTimings(1)}
+                              className="text-xs px-3 py-1 text-gray-500"
+                            >
+                              Reset
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {selectedSwings.map((swing, index: number) => (
+                    <motion.div
+                      key={swing.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <div className="space-y-3">
+                        {/* Swing Info */}
+                        <div className="space-y-3 bg-gray-50 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">
+                              Swing {index + 1}
+                            </span>
+                            <span
+                              className={`text-xs px-2 py-1 rounded-full ${
+                                videoTimings[index]?.start > 0 ||
+                                videoTimings[index]?.end > 0
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'text-gray-500'
+                              }`}
+                            >
+                              {videoTimings[index]?.start?.toFixed(1) || '0.0'}s
+                              - {videoTimings[index]?.end?.toFixed(1) || '0.0'}s
+                            </span>
+                          </div>
+
+                          {/* Control buttons */}
+                          <div className="flex items-center justify-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
                                 const video = videoRefs.current[index];
-                                if (
-                                  video &&
-                                  videoTimings[index]?.end > 0 &&
-                                  video.currentTime >= videoTimings[index].end
-                                ) {
-                                  // Only handle end behavior if we're in "Play Both" mode
+                                if (video) {
+                                  const currentTime = video.currentTime;
+                                  console.log(
+                                    'Setting start time to current time:',
+                                    currentTime
+                                  );
+                                  setVideoTimings(prev => {
+                                    const newTimings = [...prev];
+                                    newTimings[index] = {
+                                      ...newTimings[index],
+                                      start: currentTime,
+                                      end:
+                                        newTimings[index]?.end ||
+                                        videoDurations[index] ||
+                                        0,
+                                    };
+                                    return newTimings;
+                                  });
+                                }
+                              }}
+                              className="text-xs px-3 py-1"
+                            >
+                              <Scissors className="h-3 w-3 mr-1" />
+                              Set Start (Current Time)
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const video = videoRefs.current[index];
+                                if (video) {
+                                  const currentTime = video.currentTime;
+                                  console.log(
+                                    'Setting end time to current time:',
+                                    currentTime
+                                  );
+                                  setVideoTimings(prev => {
+                                    const newTimings = [...prev];
+                                    newTimings[index] = {
+                                      ...newTimings[index],
+                                      start: newTimings[index]?.start || 0,
+                                      end: currentTime,
+                                    };
+                                    return newTimings;
+                                  });
+                                }
+                              }}
+                              className="text-xs px-3 py-1"
+                            >
+                              <Scissors className="h-3 w-3 mr-1" />
+                              Set End (Current Time)
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleResetTimings(index)}
+                              className="text-xs px-3 py-1 text-gray-500"
+                            >
+                              Reset
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="bg-gray-900 rounded-lg overflow-hidden w-64 mx-auto">
+                          {(() => {
+                            const videoUrl =
+                              swing.videoUrl ||
+                              swing.video_url ||
+                              swing.file_url;
+                            const isValidUrl =
+                              videoUrl && videoUrl.startsWith('http');
+
+                            return isValidUrl ? (
+                              <video
+                                ref={video => {
+                                  videoRefs.current[index] = video;
+                                }}
+                                src={videoUrl}
+                                className="w-full h-full object-contain"
+                                muted
+                                preload="metadata"
+                                playsInline
+                                controls={true}
+                                onPlay={() => {
+                                  // Only set isPlaying to true if we're not in "Play Both" mode
+                                  if (!isPlayingBoth) {
+                                    setIsPlaying(true);
+                                  }
+                                }}
+                                onPause={() => {
+                                  // Only set isPlaying to false if we're not in "Play Both" mode
+                                  if (!isPlayingBoth) {
+                                    setIsPlaying(false);
+                                  }
+                                }}
+                                onLoadedMetadata={() => {
+                                  const video = videoRefs.current[index];
+                                  if (video) {
+                                    setVideoDurations(prev => {
+                                      const newDurations = [...prev];
+                                      newDurations[index] = video.duration;
+                                      return newDurations;
+                                    });
+                                  }
+                                }}
+                                onTimeUpdate={() => {
+                                  const video = videoRefs.current[index];
+                                  if (
+                                    video &&
+                                    videoTimings[index]?.end > 0 &&
+                                    video.currentTime >= videoTimings[index].end
+                                  ) {
+                                    // Only handle end behavior if we're in "Play Both" mode
+                                    if (isPlayingBoth) {
+                                      video.pause();
+                                      // Keep video at end time (final frame) but reset button state
+                                      setIsPlaying(false);
+                                      setIsPlayingBoth(false);
+                                    }
+                                  }
+                                }}
+                                onEnded={() => {
+                                  // Handle when video reaches natural end (no end time set)
                                   if (isPlayingBoth) {
-                                    video.pause();
-                                    // Keep video at end time (final frame) but reset button state
+                                    // Reset button state when video naturally ends
                                     setIsPlaying(false);
                                     setIsPlayingBoth(false);
                                   }
-                                }
-                              }}
-                              onEnded={() => {
-                                // Handle when video reaches natural end (no end time set)
-                                if (isPlayingBoth) {
-                                  // Reset button state when video naturally ends
-                                  setIsPlaying(false);
-                                  setIsPlayingBoth(false);
-                                }
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
-                              <Play className="h-12 w-12 text-green-400" />
-                            </div>
-                          );
-                        })()}
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
+                                <Play className="h-12 w-12 text-green-400" />
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
 
               {/* Pose Analysis Comparison */}
               {selectedSwings.length >= 2 &&
