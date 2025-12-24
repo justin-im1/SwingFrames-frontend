@@ -257,10 +257,23 @@ async function apiRequest<T>(
     console.log(`🌐 [DEBUG] Response data:`, data);
     return data;
   } catch (error) {
-    console.error(`❌ [DEBUG] API Request failed:`, error);
+    // Handle network errors gracefully
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      // Network error - API server might not be running
+      console.warn(
+        `⚠️ [API] Network error - API server may not be available at ${url}`
+      );
+      throw new ApiError(
+        0,
+        'Network error: Unable to connect to the server. Please check if the API server is running.'
+      );
+    }
+
     if (error instanceof ApiError) {
       throw error;
     }
+
+    console.error(`❌ [DEBUG] API Request failed:`, error);
     throw new ApiError(
       0,
       error instanceof Error ? error.message : 'Unknown error'

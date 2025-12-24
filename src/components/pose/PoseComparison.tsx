@@ -42,10 +42,10 @@ export default function PoseComparison({
   return (
     <div className="space-y-6 pb-10">
       {/* Event Selector */}
-      <Card>
-        <CardHeader>
-          <h3 className="text-lg font-semibold">Pose Comparison</h3>
-          <p className="text-sm text-gray-600">
+      <Card glass className="border-white/10">
+        <CardHeader className="border-white/10">
+          <h3 className="text-lg font-semibold text-white">Pose Comparison</h3>
+          <p className="text-sm text-gray-400">
             Compare swing poses at different events
           </p>
         </CardHeader>
@@ -57,7 +57,11 @@ export default function PoseComparison({
                 variant={currentEvent === event.key ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => handleEventChange(event.key)}
-                className="flex items-center"
+                className={`flex items-center ${
+                  currentEvent === event.key
+                    ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 border-0'
+                    : 'bg-white/5 backdrop-blur-sm border-white/20 text-white hover:bg-white/10'
+                }`}
               >
                 {event.label}
               </Button>
@@ -75,15 +79,15 @@ export default function PoseComparison({
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <Card>
-            <CardHeader>
-              <h4 className="text-lg font-semibold">Swing 1</h4>
-              <p className="text-sm text-gray-600">
+          <Card glass className="border-white/10">
+            <CardHeader className="border-white/10">
+              <h4 className="text-lg font-semibold text-white">Swing 1</h4>
+              <p className="text-sm text-gray-400">
                 {swingEvents.find(e => e.key === currentEvent)?.label}
               </p>
             </CardHeader>
             <CardContent>
-              <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+              <div className="aspect-video bg-black rounded-lg overflow-hidden border border-white/10">
                 {(() => {
                   const snapshotUrl = getSnapshotUrl(swing1, currentEvent);
                   const hasImageError = hasError(swing1.swing_id, currentEvent);
@@ -102,12 +106,12 @@ export default function PoseComparison({
                   }
 
                   return (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-950/50 to-black">
                       <div className="text-center">
-                        <div className="text-gray-400 mb-2">
+                        <div className="text-emerald-400 mb-2 text-2xl">
                           {hasImageError ? '⚠️' : '📷'}
                         </div>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-400">
                           {hasImageError
                             ? 'Image failed to load'
                             : 'No snapshot available'}
@@ -128,15 +132,15 @@ export default function PoseComparison({
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <Card>
-            <CardHeader>
-              <h4 className="text-lg font-semibold">Swing 2</h4>
-              <p className="text-sm text-gray-600">
+          <Card glass className="border-white/10">
+            <CardHeader className="border-white/10">
+              <h4 className="text-lg font-semibold text-white">Swing 2</h4>
+              <p className="text-sm text-gray-400">
                 {swingEvents.find(e => e.key === currentEvent)?.label}
               </p>
             </CardHeader>
             <CardContent>
-              <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+              <div className="aspect-video bg-black rounded-lg overflow-hidden border border-white/10">
                 {(() => {
                   const snapshotUrl = getSnapshotUrl(swing2, currentEvent);
                   const hasImageError = hasError(swing2.swing_id, currentEvent);
@@ -155,12 +159,12 @@ export default function PoseComparison({
                   }
 
                   return (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-950/50 to-black">
                       <div className="text-center">
-                        <div className="text-gray-400 mb-2">
+                        <div className="text-emerald-400 mb-2 text-2xl">
                           {hasImageError ? '⚠️' : '📷'}
                         </div>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-400">
                           {hasImageError
                             ? 'Image failed to load'
                             : 'No snapshot available'}
@@ -176,7 +180,7 @@ export default function PoseComparison({
       </div>
 
       {/* Navigation Controls */}
-      <Card>
+      <Card glass className="border-white/10">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <Button
@@ -190,17 +194,17 @@ export default function PoseComparison({
                   currentIndex > 0 ? currentIndex - 1 : swingEvents.length - 1;
                 setCurrentEvent(swingEvents[prevIndex].key);
               }}
-              className="flex items-center"
+              className="flex items-center bg-white/5 backdrop-blur-sm border-white/20 text-white hover:bg-white/10"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Previous
             </Button>
 
             <div className="text-center">
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-white">
                 {swingEvents.find(e => e.key === currentEvent)?.label}
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-400">
                 {swingEvents.findIndex(e => e.key === currentEvent) + 1} of{' '}
                 {swingEvents.length}
               </p>
@@ -217,7 +221,7 @@ export default function PoseComparison({
                   currentIndex < swingEvents.length - 1 ? currentIndex + 1 : 0;
                 setCurrentEvent(swingEvents[nextIndex].key);
               }}
-              className="flex items-center"
+              className="flex items-center bg-white/5 backdrop-blur-sm border-white/20 text-white hover:bg-white/10"
             >
               Next
               <ArrowRight className="h-4 w-4 ml-2" />

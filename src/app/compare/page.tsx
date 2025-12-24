@@ -145,6 +145,19 @@ export default function ComparePage() {
     });
   };
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'No date';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
   // const handleTimeUpdate = (time: number) => {
   //   setCurrentTime(time);
   // };
@@ -156,20 +169,24 @@ export default function ComparePage() {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={() => router.back()}>
+              <Button
+                variant="ghost"
+                onClick={() => router.back()}
+                className="text-gray-400 hover:text-white bg-white/5 hover:bg-white/10"
+              >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
 
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                <h1 className="text-4xl md:text-5xl font-black text-white mb-2">
                   Compare Swings
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-gray-400 text-lg">
                   Analyze and compare your golf swings side-by-side
                 </p>
               </div>
@@ -182,7 +199,7 @@ export default function ComparePage() {
                   onClick={
                     isPlaying ? handlePauseBothVideos : handlePlayBothVideos
                   }
-                  className="flex items-center"
+                  className="flex items-center bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 border-0"
                 >
                   {isPlaying ? (
                     <PlayCircle className="h-4 w-4 mr-2" />
@@ -196,7 +213,11 @@ export default function ComparePage() {
               <Button
                 variant={isOverlayMode ? 'primary' : 'outline'}
                 onClick={() => dispatch(setOverlayMode(!isOverlayMode))}
-                className="flex items-center"
+                className={`flex items-center ${
+                  isOverlayMode
+                    ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 border-0'
+                    : 'bg-white/5 backdrop-blur-sm border-white/20 text-white hover:bg-white/10'
+                }`}
               >
                 {isOverlayMode ? (
                   <EyeOff className="h-4 w-4 mr-2" />
@@ -210,12 +231,12 @@ export default function ComparePage() {
 
           {/* Swing Selection */}
           {selectedSwingIds.length < 2 && (
-            <Card className="mb-6">
-              <CardHeader>
-                <h2 className="text-lg font-semibold">
+            <Card glass className="mb-6 border-white/10">
+              <CardHeader className="border-white/10">
+                <h2 className="text-lg font-semibold text-white">
                   Select Swings to Compare
                 </h2>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-400">
                   Choose up to 2 swings from your library
                 </p>
               </CardHeader>
@@ -228,15 +249,16 @@ export default function ComparePage() {
                       whileTap={{ scale: 0.98 }}
                     >
                       <Card
-                        className={`cursor-pointer transition-all ${
+                        glass
+                        className={`cursor-pointer transition-all border-white/10 ${
                           selectedSwingIds.includes(swing.id)
-                            ? 'ring-2 ring-green-500 shadow-lg'
+                            ? 'ring-2 ring-emerald-500 border-emerald-500/40 shadow-lg'
                             : 'hover:shadow-md'
                         }`}
                         onClick={() => handleSwingSelect(swing.id)}
                       >
                         <CardContent className="p-4">
-                          <div className="bg-gray-900 rounded-lg mb-3 overflow-hidden w-48 mx-auto">
+                          <div className="bg-black rounded-lg mb-3 overflow-hidden w-48 mx-auto border border-white/10">
                             {(() => {
                               const videoUrl =
                                 swing.videoUrl ||
@@ -260,25 +282,14 @@ export default function ComparePage() {
                                   className="w-full h-full object-contain"
                                 />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
-                                  <Play className="h-8 w-8 text-green-400" />
+                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-950/50 to-black">
+                                  <Play className="h-8 w-8 text-emerald-400" />
                                 </div>
                               );
                             })()}
                           </div>
-                          <div className="flex flex-wrap gap-1">
-                            {swing.tags?.slice(0, 2).map(tag => (
-                              <span
-                                key={tag.id}
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  tag.type === 'outcome'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-blue-100 text-blue-800'
-                                }`}
-                              >
-                                {tag.label}
-                              </span>
-                            ))}
+                          <div className="text-xs text-gray-400 text-center">
+                            {formatDate(swing.createdAt || swing.created_at)}
                           </div>
                         </CardContent>
                       </Card>
@@ -296,7 +307,7 @@ export default function ComparePage() {
               {isOverlayMode ? (
                 <div className="space-y-4">
                   {/* Overlay Mode - Single video view with blending */}
-                  <div className="relative bg-gray-900 rounded-lg overflow-hidden w-64 mx-auto">
+                  <div className="relative bg-black rounded-xl overflow-hidden aspect-video max-w-4xl mx-auto border border-white/10">
                     {/* Background Video (Swing 1) */}
                     <video
                       ref={video => {
@@ -404,246 +415,258 @@ export default function ComparePage() {
                   </div>
 
                   {/* Overlay Controls */}
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-                    {/* Opacity Control */}
-                    <div className="flex items-center space-x-4">
-                      <span className="text-sm font-medium text-gray-700">
-                        Overlay Opacity:
-                      </span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                        value={overlayOpacity}
-                        onChange={e =>
-                          setOverlayOpacity(parseFloat(e.target.value))
-                        }
-                        className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <span className="text-sm text-gray-600 w-12">
-                        {Math.round(overlayOpacity * 100)}%
-                      </span>
-                    </div>
-
-                    {/* Video Info */}
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-700">
-                          Swing 1 (Background):
-                        </span>
-                        <span className="text-gray-600">
-                          {videoTimings[0]?.start?.toFixed(1) || '0.0'}s -{' '}
-                          {videoTimings[0]?.end?.toFixed(1) || '0.0'}s
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-700">
-                          Swing 2 (Overlay):
-                        </span>
-                        <span className="text-gray-600">
-                          {videoTimings[1]?.start?.toFixed(1) || '0.0'}s -{' '}
-                          {videoTimings[1]?.end?.toFixed(1) || '0.0'}s
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* External Video Controls */}
-                    <div className="space-y-4">
-                      {/* Swing 1 Controls */}
+                  <Card glass className="border-white/10">
+                    <CardHeader className="border-white/10">
+                      <h3 className="text-lg font-semibold text-white">
+                        Overlay Controls
+                      </h3>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Opacity Control */}
                       <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-gray-700">
-                          Swing 1 (Background) Controls:
-                        </h4>
-                        <div className="space-y-2">
-                          {/* Timeline Scrubber */}
-                          <div className="relative">
-                            <input
-                              type="range"
-                              min="0"
-                              max={videoDurations[0] || 0}
-                              step="0.1"
-                              value={videoRefs.current[0]?.currentTime || 0}
-                              onChange={e => {
-                                const video = videoRefs.current[0];
-                                if (video) {
-                                  video.currentTime = parseFloat(
-                                    e.target.value
-                                  );
-                                }
-                              }}
-                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                            />
-                            <div className="flex justify-between text-xs text-gray-500 mt-1">
-                              <span>0s</span>
-                              <span>
-                                {videoDurations[0]?.toFixed(1) || '0.0'}s
-                              </span>
-                            </div>
-                          </div>
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium text-white">
+                            Overlay Opacity
+                          </label>
+                          <span className="text-sm text-emerald-400 font-semibold">
+                            {Math.round(overlayOpacity * 100)}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={overlayOpacity}
+                          onChange={e =>
+                            setOverlayOpacity(parseFloat(e.target.value))
+                          }
+                          className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                          style={{
+                            background: `linear-gradient(to right, rgb(16, 185, 129) 0%, rgb(16, 185, 129) ${overlayOpacity * 100}%, rgba(255, 255, 255, 0.2) ${overlayOpacity * 100}%, rgba(255, 255, 255, 0.2) 100%)`,
+                          }}
+                        />
+                      </div>
 
-                          {/* Control Buttons */}
-                          <div className="flex items-center justify-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const video = videoRefs.current[0];
-                                if (video) {
-                                  const currentTime = video.currentTime;
-                                  setVideoTimings(prev => {
-                                    const newTimings = [...prev];
-                                    newTimings[0] = {
-                                      ...newTimings[0],
-                                      start: currentTime,
-                                      end:
-                                        newTimings[0]?.end ||
-                                        videoDurations[0] ||
-                                        0,
-                                    };
-                                    return newTimings;
-                                  });
-                                }
-                              }}
-                              className="text-xs px-3 py-1"
-                            >
-                              <Scissors className="h-3 w-3 mr-1" />
-                              Set Start
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const video = videoRefs.current[0];
-                                if (video) {
-                                  const currentTime = video.currentTime;
-                                  setVideoTimings(prev => {
-                                    const newTimings = [...prev];
-                                    newTimings[0] = {
-                                      ...newTimings[0],
-                                      start: newTimings[0]?.start || 0,
-                                      end: currentTime,
-                                    };
-                                    return newTimings;
-                                  });
-                                }
-                              }}
-                              className="text-xs px-3 py-1"
-                            >
-                              <Scissors className="h-3 w-3 mr-1" />
-                              Set End
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleResetTimings(0)}
-                              className="text-xs px-3 py-1 text-gray-500"
-                            >
-                              Reset
-                            </Button>
+                      {/* Video Info */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="glass-dark rounded-lg p-3 border border-white/10">
+                          <div className="text-xs text-gray-400 mb-1">
+                            Swing 1 (Background)
+                          </div>
+                          <div className="text-sm font-semibold text-white">
+                            {videoTimings[0]?.start?.toFixed(1) || '0.0'}s -{' '}
+                            {videoTimings[0]?.end?.toFixed(1) || '0.0'}s
+                          </div>
+                        </div>
+                        <div className="glass-dark rounded-lg p-3 border border-white/10">
+                          <div className="text-xs text-gray-400 mb-1">
+                            Swing 2 (Overlay)
+                          </div>
+                          <div className="text-sm font-semibold text-white">
+                            {videoTimings[1]?.start?.toFixed(1) || '0.0'}s -{' '}
+                            {videoTimings[1]?.end?.toFixed(1) || '0.0'}s
                           </div>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
 
-                      {/* Swing 2 Controls */}
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-gray-700">
-                          Swing 2 (Overlay) Controls:
+                  {/* External Video Controls */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Swing 1 Controls */}
+                    <Card glass className="border-white/10">
+                      <CardHeader className="border-white/10">
+                        <h4 className="text-sm font-semibold text-white">
+                          Swing 1 (Background) Controls
                         </h4>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {/* Timeline Scrubber */}
                         <div className="space-y-2">
-                          {/* Timeline Scrubber */}
-                          <div className="relative">
-                            <input
-                              type="range"
-                              min="0"
-                              max={videoDurations[1] || 0}
-                              step="0.1"
-                              value={videoRefs.current[1]?.currentTime || 0}
-                              onChange={e => {
-                                const video = videoRefs.current[1];
-                                if (video) {
-                                  video.currentTime = parseFloat(
-                                    e.target.value
-                                  );
-                                }
-                              }}
-                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                            />
-                            <div className="flex justify-between text-xs text-gray-500 mt-1">
-                              <span>0s</span>
-                              <span>
-                                {videoDurations[1]?.toFixed(1) || '0.0'}s
-                              </span>
-                            </div>
+                          <div className="flex justify-between text-xs text-gray-400">
+                            <span>0s</span>
+                            <span>
+                              {videoDurations[0]?.toFixed(1) || '0.0'}s
+                            </span>
                           </div>
-
-                          {/* Control Buttons */}
-                          <div className="flex items-center justify-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const video = videoRefs.current[1];
-                                if (video) {
-                                  const currentTime = video.currentTime;
-                                  setVideoTimings(prev => {
-                                    const newTimings = [...prev];
-                                    newTimings[1] = {
-                                      ...newTimings[1],
-                                      start: currentTime,
-                                      end:
-                                        newTimings[1]?.end ||
-                                        videoDurations[1] ||
-                                        0,
-                                    };
-                                    return newTimings;
-                                  });
-                                }
-                              }}
-                              className="text-xs px-3 py-1"
-                            >
-                              <Scissors className="h-3 w-3 mr-1" />
-                              Set Start
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const video = videoRefs.current[1];
-                                if (video) {
-                                  const currentTime = video.currentTime;
-                                  setVideoTimings(prev => {
-                                    const newTimings = [...prev];
-                                    newTimings[1] = {
-                                      ...newTimings[1],
-                                      start: newTimings[1]?.start || 0,
-                                      end: currentTime,
-                                    };
-                                    return newTimings;
-                                  });
-                                }
-                              }}
-                              className="text-xs px-3 py-1"
-                            >
-                              <Scissors className="h-3 w-3 mr-1" />
-                              Set End
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleResetTimings(1)}
-                              className="text-xs px-3 py-1 text-gray-500"
-                            >
-                              Reset
-                            </Button>
-                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max={videoDurations[0] || 0}
+                            step="0.1"
+                            value={videoRefs.current[0]?.currentTime || 0}
+                            onChange={e => {
+                              const video = videoRefs.current[0];
+                              if (video) {
+                                video.currentTime = parseFloat(e.target.value);
+                              }
+                            }}
+                            className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                          />
                         </div>
-                      </div>
-                    </div>
+
+                        {/* Control Buttons */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const video = videoRefs.current[0];
+                              if (video) {
+                                const currentTime = video.currentTime;
+                                setVideoTimings(prev => {
+                                  const newTimings = [...prev];
+                                  newTimings[0] = {
+                                    ...newTimings[0],
+                                    start: currentTime,
+                                    end:
+                                      newTimings[0]?.end ||
+                                      videoDurations[0] ||
+                                      0,
+                                  };
+                                  return newTimings;
+                                });
+                              }
+                            }}
+                            className="bg-white/5 border-white/20 text-white hover:bg-white/10 text-xs"
+                          >
+                            <Scissors className="h-3 w-3 mr-1" />
+                            Set Start
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const video = videoRefs.current[0];
+                              if (video) {
+                                const currentTime = video.currentTime;
+                                setVideoTimings(prev => {
+                                  const newTimings = [...prev];
+                                  newTimings[0] = {
+                                    ...newTimings[0],
+                                    start: newTimings[0]?.start || 0,
+                                    end: currentTime,
+                                  };
+                                  return newTimings;
+                                });
+                              }
+                            }}
+                            className="bg-white/5 border-white/20 text-white hover:bg-white/10 text-xs"
+                          >
+                            <Scissors className="h-3 w-3 mr-1" />
+                            Set End
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleResetTimings(0)}
+                            className="text-xs text-gray-400 hover:text-white bg-white/5 hover:bg-white/10"
+                          >
+                            Reset
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Swing 2 Controls */}
+                    <Card glass className="border-white/10">
+                      <CardHeader className="border-white/10">
+                        <h4 className="text-sm font-semibold text-white">
+                          Swing 2 (Overlay) Controls
+                        </h4>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {/* Timeline Scrubber */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs text-gray-400">
+                            <span>0s</span>
+                            <span>
+                              {videoDurations[1]?.toFixed(1) || '0.0'}s
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max={videoDurations[1] || 0}
+                            step="0.1"
+                            value={videoRefs.current[1]?.currentTime || 0}
+                            onChange={e => {
+                              const video = videoRefs.current[1];
+                              if (video) {
+                                video.currentTime = parseFloat(e.target.value);
+                              }
+                            }}
+                            className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                          />
+                        </div>
+
+                        {/* Control Buttons */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const video = videoRefs.current[1];
+                              if (video) {
+                                const currentTime = video.currentTime;
+                                setVideoTimings(prev => {
+                                  const newTimings = [...prev];
+                                  newTimings[1] = {
+                                    ...newTimings[1],
+                                    start: currentTime,
+                                    end:
+                                      newTimings[1]?.end ||
+                                      videoDurations[1] ||
+                                      0,
+                                  };
+                                  return newTimings;
+                                });
+                              }
+                            }}
+                            className="bg-white/5 border-white/20 text-white hover:bg-white/10 text-xs"
+                          >
+                            <Scissors className="h-3 w-3 mr-1" />
+                            Set Start
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const video = videoRefs.current[1];
+                              if (video) {
+                                const currentTime = video.currentTime;
+                                setVideoTimings(prev => {
+                                  const newTimings = [...prev];
+                                  newTimings[1] = {
+                                    ...newTimings[1],
+                                    start: newTimings[1]?.start || 0,
+                                    end: currentTime,
+                                  };
+                                  return newTimings;
+                                });
+                              }
+                            }}
+                            className="bg-white/5 border-white/20 text-white hover:bg-white/10 text-xs"
+                          >
+                            <Scissors className="h-3 w-3 mr-1" />
+                            Set End
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleResetTimings(1)}
+                            className="text-xs text-gray-400 hover:text-white bg-white/5 hover:bg-white/10"
+                          >
+                            Reset
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {selectedSwings.map((swing, index: number) => (
                     <motion.div
                       key={swing.id}
@@ -651,97 +674,94 @@ export default function ComparePage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {/* Swing Info */}
-                        <div className="space-y-3 bg-gray-50 rounded-lg p-4">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-700">
-                              Swing {index + 1}
-                            </span>
-                            <span
-                              className={`text-xs px-2 py-1 rounded-full ${
-                                videoTimings[index]?.start > 0 ||
-                                videoTimings[index]?.end > 0
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'text-gray-500'
-                              }`}
-                            >
-                              {videoTimings[index]?.start?.toFixed(1) || '0.0'}s
-                              - {videoTimings[index]?.end?.toFixed(1) || '0.0'}s
-                            </span>
-                          </div>
+                        <Card glass className="border-white/10">
+                          <CardHeader className="border-white/10">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-base font-semibold text-white">
+                                Swing {index + 1}
+                              </h3>
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                  videoTimings[index]?.start > 0 ||
+                                  videoTimings[index]?.end > 0
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                    : 'text-gray-500 bg-white/5 border border-white/10'
+                                }`}
+                              >
+                                {videoTimings[index]?.start?.toFixed(1) ||
+                                  '0.0'}
+                                s -{' '}
+                                {videoTimings[index]?.end?.toFixed(1) || '0.0'}s
+                              </span>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {/* Control buttons */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const video = videoRefs.current[index];
+                                  if (video) {
+                                    const currentTime = video.currentTime;
+                                    setVideoTimings(prev => {
+                                      const newTimings = [...prev];
+                                      newTimings[index] = {
+                                        ...newTimings[index],
+                                        start: currentTime,
+                                        end:
+                                          newTimings[index]?.end ||
+                                          videoDurations[index] ||
+                                          0,
+                                      };
+                                      return newTimings;
+                                    });
+                                  }
+                                }}
+                                className="bg-white/5 border-white/20 text-white hover:bg-white/10 text-xs"
+                              >
+                                <Scissors className="h-3 w-3 mr-1" />
+                                Set Start
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const video = videoRefs.current[index];
+                                  if (video) {
+                                    const currentTime = video.currentTime;
+                                    setVideoTimings(prev => {
+                                      const newTimings = [...prev];
+                                      newTimings[index] = {
+                                        ...newTimings[index],
+                                        start: newTimings[index]?.start || 0,
+                                        end: currentTime,
+                                      };
+                                      return newTimings;
+                                    });
+                                  }
+                                }}
+                                className="bg-white/5 border-white/20 text-white hover:bg-white/10 text-xs"
+                              >
+                                <Scissors className="h-3 w-3 mr-1" />
+                                Set End
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleResetTimings(index)}
+                                className="text-xs text-gray-400 hover:text-white bg-white/5 hover:bg-white/10"
+                              >
+                                Reset
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
 
-                          {/* Control buttons */}
-                          <div className="flex items-center justify-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const video = videoRefs.current[index];
-                                if (video) {
-                                  const currentTime = video.currentTime;
-                                  console.log(
-                                    'Setting start time to current time:',
-                                    currentTime
-                                  );
-                                  setVideoTimings(prev => {
-                                    const newTimings = [...prev];
-                                    newTimings[index] = {
-                                      ...newTimings[index],
-                                      start: currentTime,
-                                      end:
-                                        newTimings[index]?.end ||
-                                        videoDurations[index] ||
-                                        0,
-                                    };
-                                    return newTimings;
-                                  });
-                                }
-                              }}
-                              className="text-xs px-3 py-1"
-                            >
-                              <Scissors className="h-3 w-3 mr-1" />
-                              Set Start (Current Time)
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const video = videoRefs.current[index];
-                                if (video) {
-                                  const currentTime = video.currentTime;
-                                  console.log(
-                                    'Setting end time to current time:',
-                                    currentTime
-                                  );
-                                  setVideoTimings(prev => {
-                                    const newTimings = [...prev];
-                                    newTimings[index] = {
-                                      ...newTimings[index],
-                                      start: newTimings[index]?.start || 0,
-                                      end: currentTime,
-                                    };
-                                    return newTimings;
-                                  });
-                                }
-                              }}
-                              className="text-xs px-3 py-1"
-                            >
-                              <Scissors className="h-3 w-3 mr-1" />
-                              Set End (Current Time)
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleResetTimings(index)}
-                              className="text-xs px-3 py-1 text-gray-500"
-                            >
-                              Reset
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="bg-gray-900 rounded-lg overflow-hidden w-64 mx-auto">
+                        <div className="bg-black rounded-xl overflow-hidden border border-white/10 aspect-video">
                           {(() => {
                             const videoUrl =
                               swing.videoUrl ||
@@ -809,8 +829,8 @@ export default function ComparePage() {
                                 }}
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
-                                <Play className="h-12 w-12 text-green-400" />
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-950/50 to-black">
+                                <Play className="h-12 w-12 text-emerald-400" />
                               </div>
                             );
                           })()}

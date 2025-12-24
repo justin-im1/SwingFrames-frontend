@@ -34,7 +34,7 @@ export function Card({
       className={cn(
         'rounded-2xl transition-all duration-300',
         glass
-          ? 'glass-card shadow-xl hover:shadow-2xl'
+          ? 'glass-dark shadow-xl hover:shadow-2xl'
           : 'bg-white border border-gray-100 shadow-sm hover:shadow-lg',
         hover && 'hover:-translate-y-1',
         className
@@ -64,7 +64,7 @@ export function CardHeader({
   return (
     <div
       ref={headerRef}
-      className={cn('px-6 py-4 border-b border-gray-200', className)}
+      className={cn('px-6 py-4 border-b border-white/10', className)}
       {...props}
     />
   );

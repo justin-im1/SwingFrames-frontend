@@ -21,8 +21,6 @@ import { Swing, SwingsState } from '../../types';
 import { useAuthenticatedApi } from '../../hooks/useAuthenticatedApi';
 import { useAuth } from '@clerk/nextjs';
 
-type ViewMode = 'grid' | 'list';
-
 export default function LibraryPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -33,9 +31,6 @@ export default function LibraryPage() {
   const { library, selectedSwings, loading } = swingsState;
   const api = useAuthenticatedApi();
 
-  // State for view mode
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-
   useEffect(() => {
     const loadLibrary = async () => {
       // Only load if authentication is ready and user is signed in
@@ -45,13 +40,33 @@ export default function LibraryPage() {
 
       try {
         dispatch(setLoading(true));
+        dispatch(setError(null));
         const swingsApi = await api.swings();
         const res = await swingsApi.getLibrary(1, 20);
         // Handle both array response and object with data property
         const swingsData = Array.isArray(res) ? res : res?.data || [];
         dispatch(setLibrary(swingsData));
-      } catch {
-        dispatch(setError('Failed to load swings'));
+        dispatch(setLoading(false));
+      } catch (error) {
+        // Silently handle network errors - API server might not be running
+        // Just show empty state instead of error message
+        if (error instanceof Error) {
+          const isNetworkError =
+            error.message.includes('Failed to fetch') ||
+            error.message.includes('Network error') ||
+            error.message.includes('Unable to connect');
+
+          if (isNetworkError) {
+            // Silently set empty library for network errors
+            dispatch(setLibrary([]));
+          } else {
+            // Only show error for non-network issues
+            dispatch(setError('Failed to load swings'));
+          }
+        } else {
+          dispatch(setLibrary([]));
+        }
+        dispatch(setLoading(false));
       }
     };
     loadLibrary();
@@ -65,14 +80,19 @@ export default function LibraryPage() {
 
   const handleSwingSelect = (swing: Swing) => {
     if (selectedSwings.includes(swing.id)) {
+      // Deselect if already selected
       dispatch(deselectSwing(swing.id));
     } else {
-      dispatch(selectSwing(swing.id));
+      // Only allow selecting if less than 2 swings are already selected
+      if (selectedSwings.length < 2) {
+        dispatch(selectSwing(swing.id));
+      }
+      // If 2 swings are already selected, do nothing (user needs to deselect first)
     }
   };
 
   const handleCompare = () => {
-    if (selectedSwings.length >= 2) {
+    if (selectedSwings.length === 2) {
       router.push('/compare');
     }
   };
@@ -80,31 +100,33 @@ export default function LibraryPage() {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-semibold text-gray-900">
-                  Swing Library
-                </h1>
-                <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                  {library.length}
-                </span>
+          <div className="mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-4xl md:text-5xl font-black text-white">
+                    Swing Library
+                  </h1>
+                  <span className="inline-flex items-center text-sm px-3 py-1 rounded-full glass-dark border border-emerald-500/30 text-emerald-400 font-semibold">
+                    {library.length}
+                  </span>
+                </div>
+                <p className="text-gray-400 text-lg">
+                  Your uploaded swing videos
+                </p>
               </div>
-              <p className="text-gray-600 text-sm">
-                Your uploaded swing videos
-              </p>
-            </div>
 
-            <div className="flex space-x-2 mt-4 sm:mt-0">
-              <Button
-                onClick={() => router.push('/upload')}
-                className="flex items-center"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Upload Swing
-              </Button>
+              <div className="flex space-x-3 mt-4 sm:mt-0">
+                <Button
+                  onClick={() => router.push('/upload')}
+                  className="flex items-center bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 border-0"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Upload Swing
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -115,32 +137,52 @@ export default function LibraryPage() {
               exit={{ opacity: 0, y: 100 }}
               className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50"
             >
-              <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 px-6 py-4 backdrop-blur-sm bg-white/95">
+              <div className="glass-dark rounded-2xl shadow-2xl border border-white/10 px-6 py-4 backdrop-blur-xl">
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      {selectedSwings.length} swing
-                      {selectedSwings.length !== 1 ? 's' : ''} selected
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={handleCompare}
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                      disabled={selectedSwings.length < 2}
-                    >
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Compare ({selectedSwings.length})
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => dispatch(clearSelection())}
-                      className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg"
-                    >
-                      Clear
-                    </Button>
-                  </div>
+                  {selectedSwings.length === 2 ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-white">
+                          2 swings selected
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={handleCompare}
+                          className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium border-0"
+                        >
+                          <BarChart3 className="h-4 w-4 mr-2" />
+                          Compare Swings
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => dispatch(clearSelection())}
+                          className="text-gray-400 hover:text-white px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10"
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-400">
+                          {selectedSwings.length} of 2 swings selected
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => dispatch(clearSelection())}
+                          className="text-gray-400 hover:text-white px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10"
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -154,7 +196,7 @@ export default function LibraryPage() {
                 animate={{ opacity: 1 }}
                 className="text-center py-12"
               >
-                <p className="text-gray-600">Loading authentication...</p>
+                <p className="text-gray-400">Loading authentication...</p>
               </motion.div>
             ) : loading ? (
               <motion.div
@@ -162,29 +204,34 @@ export default function LibraryPage() {
                 animate={{ opacity: 1 }}
                 className="text-center py-12"
               >
-                <p className="text-gray-600">Loading swings…</p>
+                <p className="text-gray-400">Loading swings…</p>
               </motion.div>
             ) : filteredSwings.length > 0 ? (
               <motion.div
-                key={viewMode}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className={
-                  viewMode === 'grid'
-                    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-                    : 'space-y-3'
-                }
+                transition={{ duration: 0.3 }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
               >
-                {filteredSwings.map((swing: Swing) => (
-                  <SwingCard
+                {filteredSwings.map((swing: Swing, index: number) => (
+                  <motion.div
                     key={swing.id}
-                    swing={swing}
-                    onSelect={handleSwingSelect}
-                    isSelected={selectedSwings.includes(swing.id)}
-                    showActions={true}
-                  />
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <SwingCard
+                      swing={swing}
+                      onSelect={handleSwingSelect}
+                      isSelected={selectedSwings.includes(swing.id)}
+                      isDisabled={
+                        selectedSwings.length >= 2 &&
+                        !selectedSwings.includes(swing.id)
+                      }
+                      showActions={true}
+                    />
+                  </motion.div>
                 ))}
               </motion.div>
             ) : (
@@ -193,16 +240,19 @@ export default function LibraryPage() {
                 animate={{ opacity: 1 }}
                 className="text-center py-16"
               >
-                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Plus className="h-12 w-12 text-gray-400" />
+                <div className="w-24 h-24 glass-dark rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
+                  <Plus className="h-12 w-12 text-emerald-400" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1">
+                <h3 className="text-2xl font-bold text-white mb-2">
                   No swings found
                 </h3>
-                <p className="text-gray-600 mb-6 text-sm">
+                <p className="text-gray-400 mb-6 text-base">
                   Upload your first golf swing to get started
                 </p>
-                <Button onClick={() => router.push('/upload')}>
+                <Button
+                  onClick={() => router.push('/upload')}
+                  className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 border-0"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Upload Your First Swing
                 </Button>

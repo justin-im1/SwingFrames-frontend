@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -20,7 +22,19 @@ import Layout from '../components/layout/Layout';
 import Button from '../components/ui/Button';
 
 export default function Home() {
-  const { isSignedIn } = useUser();
+  const { isSignedIn, isLoaded } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.push('/library');
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  // Show nothing while checking auth or if redirecting
+  if (!isLoaded || isSignedIn) {
+    return null;
+  }
 
   const features = [
     {

@@ -16,6 +16,7 @@ interface SwingCardProps {
   onDelete?: (swingId: string) => void;
   onAnalyze?: (swing: Swing) => void;
   isSelected?: boolean;
+  isDisabled?: boolean;
   showActions?: boolean;
 }
 
@@ -25,6 +26,7 @@ export default function SwingCard({
   onDelete,
   onAnalyze,
   isSelected = false,
+  isDisabled = false,
   showActions = true,
 }: SwingCardProps) {
   const [videoError, setVideoError] = useState(false);
@@ -56,6 +58,19 @@ export default function SwingCard({
     }
   };
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'No date';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
   return (
     <motion.div
       layout
@@ -66,14 +81,18 @@ export default function SwingCard({
       className="group"
     >
       <Card
-        className={`border-none rounded-lg shadow-sm hover:shadow-lg transition-all ${
-          isSelected ? 'ring-2 ring-green-500' : ''
-        }`}
-        hover
+        glass
+        className={`border-white/10 rounded-2xl shadow-lg transition-all ${
+          isDisabled
+            ? 'opacity-50 cursor-not-allowed'
+            : 'hover:shadow-xl cursor-pointer'
+        } ${isSelected ? 'ring-2 ring-emerald-500 border-emerald-500/40' : ''}`}
+        hover={!isDisabled}
+        onClick={() => !isDisabled && onSelect?.(swing)}
       >
         <CardContent className="p-0">
           {/* Video Preview */}
-          <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
+          <div className="relative aspect-video bg-black rounded-t-2xl overflow-hidden border-b border-white/10">
             {isValidUrl ? (
               <video
                 ref={videoRef}
@@ -137,10 +156,10 @@ export default function SwingCard({
                 }}
               />
             ) : videoError ? (
-              <div className="w-full h-full flex items-center justify-center bg-red-50">
+              <div className="w-full h-full flex items-center justify-center bg-red-950/20 border border-red-500/20">
                 <div className="text-center">
                   <Play className="h-8 w-8 text-red-400 mx-auto mb-2" />
-                  <p className="text-xs text-red-600">Video unavailable</p>
+                  <p className="text-xs text-red-400">Video unavailable</p>
                 </div>
               </div>
             ) : swing.thumbnailUrl ? (
@@ -150,18 +169,18 @@ export default function SwingCard({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
-                <Play className="h-12 w-12 text-green-400" />
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-950/50 to-black">
+                <Play className="h-12 w-12 text-emerald-400" />
               </div>
             )}
 
-            {/* Checkbox overlay for selection - hover only */}
+            {/* Checkbox overlay for selection */}
             <button
               aria-label="Select swing"
-              className={`absolute top-2 left-2 h-6 w-6 rounded-md border transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 hover:cursor-pointer ${
+              className={`absolute top-3 left-3 h-7 w-7 rounded-lg border-2 transition-all flex items-center justify-center font-bold ${
                 isSelected
-                  ? 'bg-green-500 border-green-500 text-white'
-                  : 'bg-black/50 border-white/60 text-white'
+                  ? 'bg-emerald-500 border-emerald-500 text-white opacity-100 scale-110'
+                  : 'glass-dark border-white/60 text-white opacity-0 group-hover:opacity-100 hover:scale-110'
               }`}
               onClick={e => {
                 e.stopPropagation();
@@ -170,37 +189,44 @@ export default function SwingCard({
             >
               {isSelected ? '✓' : ''}
             </button>
-          </div>
 
-          {/* Action buttons - top right, on hover */}
-          {showActions && (
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
-              {onAnalyze && (
+            {/* Action buttons - top right, on hover */}
+            {showActions && (
+              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                {onAnalyze && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={e => {
+                      e.stopPropagation();
+                      onAnalyze(swing);
+                    }}
+                    aria-label="Analyze swing"
+                    className="h-8 w-8 p-0 glass-dark hover:bg-emerald-500/20 border border-white/20"
+                  >
+                    <Zap className="h-4 w-4 text-emerald-400" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={e => {
-                    e.stopPropagation();
-                    onAnalyze(swing);
-                  }}
-                  aria-label="Analyze swing"
-                  className="h-6 w-6 p-0 bg-black/50 hover:bg-black/70 text-white hover:text-white hover:cursor-pointer"
+                  onClick={handleDelete}
+                  aria-label="Delete swing"
+                  disabled={deleteSwingMutation.isPending}
+                  className="h-8 w-8 p-0 glass-dark hover:bg-red-500/20 border border-white/20"
                 >
-                  <Zap className="h-3 w-3 text-yellow-400" />
+                  <Trash2 className="h-4 w-4 text-red-400" />
                 </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDelete}
-                aria-label="Delete swing"
-                disabled={deleteSwingMutation.isPending}
-                className="h-6 w-6 p-0 bg-black/50 hover:bg-black/70 text-white hover:text-white hover:cursor-pointer"
-              >
-                <Trash2 className="h-3 w-3 text-red-400" />
-              </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Card Footer with Date */}
+          <div className="p-4">
+            <div className="text-sm text-gray-400">
+              {formatDate(swing.createdAt || swing.created_at)}
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
     </motion.div>

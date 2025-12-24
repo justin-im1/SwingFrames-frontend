@@ -8,11 +8,8 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    // <div className="h-screen w-screen bg-green-500 overflow-hidden">
-    //   <Navbar />
-    <main className="h-full overflow-auto">
+    <main className="h-full overflow-auto bg-black">
       <div className="h-full">{children}</div>
     </main>
-    // </div>
   );
 }

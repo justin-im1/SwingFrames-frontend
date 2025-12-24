@@ -46,22 +46,22 @@ export default function UploadPage() {
   return (
     <ProtectedRoute>
       <Layout>
-        <div className="h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
             <Button
               variant="ghost"
               onClick={() => router.back()}
-              className="mb-4"
+              className="mb-6 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
 
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-4xl md:text-5xl font-black text-white mb-3">
               Upload Your Golf Swing
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-400 text-lg">
               Upload a video of your golf swing and add details to track your
               progress.
             </p>
@@ -70,11 +70,13 @@ export default function UploadPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Upload Section */}
             <div className="space-y-6">
-              <Card>
-                <CardHeader>
+              <Card glass className="border-white/10">
+                <CardHeader className="border-white/10">
                   <div className="flex items-center space-x-2">
-                    <Upload className="h-5 w-5 text-green-600" />
-                    <h2 className="text-lg font-semibold">Video Upload</h2>
+                    <Upload className="h-5 w-5 text-emerald-400" />
+                    <h2 className="text-lg font-semibold text-white">
+                      Video Upload
+                    </h2>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -91,23 +93,23 @@ export default function UploadPage() {
 
             {/* Preview Section */}
             <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <h2 className="text-lg font-semibold">Preview</h2>
+              <Card glass className="border-white/10">
+                <CardHeader className="border-white/10">
+                  <h2 className="text-lg font-semibold text-white">Preview</h2>
                 </CardHeader>
                 <CardContent>
                   {uploadedFileId ? (
                     <div className="space-y-4">
-                      <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="aspect-video glass-dark rounded-lg flex items-center justify-center border border-emerald-500/20">
                         <div className="text-center">
-                          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                            <Upload className="h-8 w-8 text-green-600" />
+                          <div className="w-16 h-16 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-full flex items-center justify-center mx-auto mb-2 border border-emerald-500/30">
+                            <Upload className="h-8 w-8 text-emerald-400" />
                           </div>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-white">
                             Video uploaded successfully
                           </p>
                           {swingId && (
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-400 mt-1">
                               Swing ID: {swingId}
                             </p>
                           )}
@@ -115,14 +117,14 @@ export default function UploadPage() {
                       </div>
                       <Button
                         onClick={() => router.push('/library')}
-                        className="w-full"
+                        className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 border-0"
                         size="lg"
                       >
                         View in Library
                       </Button>
                     </div>
                   ) : (
-                    <div className="aspect-video bg-gray-50 rounded-lg flex items-center justify-center">
+                    <div className="aspect-video glass-dark rounded-lg flex items-center justify-center border border-white/10">
                       <div className="text-center text-gray-400">
                         <Upload className="h-12 w-12 mx-auto mb-2" />
                         <p className="text-sm">Upload a video to see preview</p>
